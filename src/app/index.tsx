@@ -1,11 +1,5 @@
-import { Text, View } from "react-native";
+import { Redirect } from "expo-router";
 
 export default function Index() {
-  return (
-    <View className="flex-1 items-center justify-center">
-      <Text className="font-bold text-red-500 text-4xl">
-        Welcome to Nativewind!
-      </Text>
-    </View>
-  );
+  return <Redirect href="/(app)/(tabs)" />;
 }
