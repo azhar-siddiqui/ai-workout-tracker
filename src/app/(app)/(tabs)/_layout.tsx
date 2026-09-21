@@ -1,43 +1,112 @@
 import { useAppThemeColor } from "@/theme/app-theme";
 import { Lucide } from "@react-native-vector-icons/lucide";
+import {
+  GlassView,
+  isGlassEffectAPIAvailable,
+  isLiquidGlassAvailable,
+} from "expo-glass-effect";
 import { Tabs, useRouter } from "expo-router";
-import { NativeTabs } from "expo-router/unstable-native-tabs";
-import { Platform, Pressable, View } from "react-native";
+import { useColorScheme } from "nativewind";
+import { useEffect, useState, type ReactNode } from "react";
+import {
+  AccessibilityInfo,
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
+  type ViewStyle,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-function CustomTabLayout() {
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
+const TAB_BAR_HEIGHT = 66;
+const TAB_BAR_RADIUS = 50;
+
+function useCanUseLiquidGlass() {
+  const [reduceTransparency, setReduceTransparency] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+
+    AccessibilityInfo.isReduceTransparencyEnabled().then((enabled) => {
+      if (mounted) {
+        setReduceTransparency(!!enabled);
+      }
+    });
+
+    const subscription = AccessibilityInfo.addEventListener(
+      "reduceTransparencyChanged",
+      setReduceTransparency,
+    );
+
+    return () => {
+      mounted = false;
+      subscription.remove();
+    };
+  }, []);
+
+  return (
+    !reduceTransparency &&
+    isLiquidGlassAvailable() &&
+    isGlassEffectAPIAvailable()
+  );
+}
+
+function IOSGlassTabBarBackground() {
+  const { colorScheme } = useColorScheme();
   const tabBackground = useAppThemeColor("tabBackground");
+  const border = useAppThemeColor("border");
+  const canUseGlass = useCanUseLiquidGlass();
+  const scheme = colorScheme === "dark" ? "dark" : "light";
+
+  if (!canUseGlass) {
+    return (
+      <View
+        style={[
+          StyleSheet.absoluteFill,
+          styles.tabBarFill,
+          {
+            backgroundColor: tabBackground,
+            borderColor: border,
+            borderWidth: StyleSheet.hairlineWidth,
+          },
+        ]}
+      />
+    );
+  }
+
+  return (
+    <GlassView
+      colorScheme={scheme}
+      glassEffectStyle="regular"
+      isInteractive
+      style={[StyleSheet.absoluteFill, styles.tabBarFill]}
+    />
+  );
+}
+
+function AppTabs({
+  tabBarBackground,
+  tabBarStyle,
+}: {
+  tabBarBackground?: () => ReactNode;
+  tabBarStyle: ViewStyle;
+}) {
+  const router = useRouter();
   const primary = useAppThemeColor("primary");
   const mutedForeground = useAppThemeColor("mutedForeground");
-  const border = useAppThemeColor("border");
-  const bottomSpace = Platform.OS === "android" ? 12 : 0;
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: primary,
+        tabBarBackground,
         tabBarInactiveTintColor: mutedForeground,
         tabBarLabelStyle: {
           fontFamily: "Inter_500Medium",
           fontSize: 10,
         },
-        tabBarStyle: {
-          backgroundColor: tabBackground,
-          bottom: insets.bottom + bottomSpace,
-          height: 66,
-          left: 13,
-          paddingBottom: 7,
-          paddingTop: 6,
-          borderRadius: 50,
-          marginHorizontal: 12,
-          position: "relative",
-          shadowColor: "#333",
-          borderColor: border,
-          borderWidth: 0.5,
-        },
+        tabBarStyle,
       }}
     >
       <Tabs.Screen
@@ -62,7 +131,6 @@ function CustomTabLayout() {
       />
       <Tabs.Screen
         name="create"
-        // add this instead of redirect
         listeners={{
           tabPress: (event) => {
             event.preventDefault();
@@ -72,6 +140,8 @@ function CustomTabLayout() {
         options={{
           tabBarButton: ({ onPress }) => (
             <Pressable
+              accessibilityLabel="Create workout"
+              accessibilityRole="button"
               className="flex-1 items-center justify-center"
               onPress={onPress}
             >
@@ -108,50 +178,64 @@ function CustomTabLayout() {
   );
 }
 
-// For Ios Simulator Test NativeTab
-function IOSTabLayout() {
-  const router = useRouter();
+function CustomTabLayout() {
+  const insets = useSafeAreaInsets();
+  const tabBackground = useAppThemeColor("tabBackground");
+  const border = useAppThemeColor("border");
+  const bottomSpace = Platform.OS === "android" ? 12 : 0;
 
   return (
-    <NativeTabs>
-      <NativeTabs.Trigger name="index">
-        <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="house" />
-      </NativeTabs.Trigger>
+    <AppTabs
+      tabBarStyle={{
+        backgroundColor: tabBackground,
+        borderColor: border,
+        borderRadius: TAB_BAR_RADIUS,
+        borderWidth: 0.5,
+        bottom: insets.bottom + bottomSpace,
+        height: TAB_BAR_HEIGHT,
+        left: 13,
+        marginHorizontal: 12,
+        paddingBottom: 7,
+        paddingTop: 6,
+        position: "relative",
+        shadowColor: "#333",
+      }}
+    />
+  );
+}
 
-      <NativeTabs.Trigger name="workouts">
-        <NativeTabs.Trigger.Label>Workouts</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="figure.strengthtraining.traditional" />
-      </NativeTabs.Trigger>
+function IOSTabLayout() {
+  const insets = useSafeAreaInsets();
 
-      <NativeTabs.Trigger
-        disabled
-        listeners={{
-          tabPress: () => {
-            router.push("/workout/create");
-          },
-        }}
-        name="create"
-      >
-        <NativeTabs.Trigger.Label>Create</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="plus.circle.fill" />
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="history">
-        <NativeTabs.Trigger.Label>History</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="calendar" />
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="profile">
-        <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="person" />
-      </NativeTabs.Trigger>
-    </NativeTabs>
+  return (
+    <AppTabs
+      tabBarBackground={() => <IOSGlassTabBarBackground />}
+      tabBarStyle={{
+        backgroundColor: "transparent",
+        borderRadius: TAB_BAR_RADIUS,
+        borderTopWidth: 0,
+        bottom: insets.bottom,
+        elevation: 0,
+        height: TAB_BAR_HEIGHT,
+        left: 13,
+        marginHorizontal: 12,
+        overflow: "visible",
+        paddingBottom: 7,
+        paddingTop: 6,
+        position: "relative",
+        shadowColor: "transparent",
+      }}
+    />
   );
 }
 
 export default function TabLayout() {
-  // replace the CustomTabLayout for ios with IOSTabLayout
-  // to see the glass tab
   return Platform.OS === "ios" ? <IOSTabLayout /> : <CustomTabLayout />;
 }
+
+const styles = StyleSheet.create({
+  tabBarFill: {
+    borderRadius: TAB_BAR_RADIUS,
+    overflow: "hidden",
+  },
+});
