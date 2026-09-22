@@ -18,12 +18,12 @@ const goalOptions = [
     value: "build-muscle",
   },
   {
-    icon: "fire-flame-simple",
+    icon: "flame",
     label: "Lose Fat",
     value: "lose-fat",
   },
   {
-    icon: "scale-balanced",
+    icon: "scale",
     label: "Maintain",
     value: "maintain",
   },
