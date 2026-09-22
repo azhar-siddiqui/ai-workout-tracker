@@ -87,7 +87,9 @@ export default function RootLayout() {
             //USE: Stack controls Android; expo-status-bar above controls iOS.
             ...(Platform.OS === "android" && { statusBarStyle }),
           }}
-        ></Stack>
+        >
+          <Stack.Screen name="(public)" />
+        </Stack>
       </View>
     </ThemeProvider>
   );

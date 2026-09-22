@@ -1,9 +1,8 @@
 import { Text, View } from "react-native";
-
-export default function OnboardingStep() {
+export default function SignUpScreen() {
   return (
     <View>
-      <Text>OnboardingStep</Text>
+      <Text>SignUpScreen</Text>
     </View>
   );
 }
